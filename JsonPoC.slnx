@@ -4,4 +4,5 @@
     <Platform Name="x86" />
   </Configurations>
   <Project Path="JsonPoC/JsonPoC.vcxproj" />
+  <Project Path="CRUD/CRUD.vcxproj" />
 </Solution>
