@@ -83,6 +83,124 @@ namespace
 
         std::cout << "저장되었습니다: " << record.Dump() << "\n";
     }
+
+    std::string FieldToString(const json::JsonValue& value)
+    {
+        if (value.IsString())
+        {
+            return value.AsString();
+        }
+        return value.Dump();
+    }
+
+    void PrintRecord(const json::JsonValue& record)
+    {
+        bool first = true;
+        for (const auto& [key, value] : record.AsObject())
+        {
+            if (!first)
+            {
+                std::cout << ", ";
+            }
+            std::cout << key << ": " << FieldToString(value);
+            first = false;
+        }
+        std::cout << "\n";
+    }
+
+    void PrintAllRecords(const json::JsonValue& database)
+    {
+        const auto& records = database.AsArray();
+        if (records.empty())
+        {
+            std::cout << "데이터가 없습니다.\n";
+            return;
+        }
+        for (const auto& record : records)
+        {
+            PrintRecord(record);
+        }
+    }
+
+    const json::JsonValue* FindById(const json::JsonValue& database, int id)
+    {
+        for (const auto& record : database.AsArray())
+        {
+            const json::JsonValue* idValue = record.Find("id");
+            if (idValue && static_cast<int>(idValue->AsNumber()) == id)
+            {
+                return &record;
+            }
+        }
+        return nullptr;
+    }
+
+    void HandleSearchById(const json::JsonValue& database)
+    {
+        std::string idText = ReadLine("검색할 id: ");
+        try
+        {
+            int id = std::stoi(idText);
+            if (const json::JsonValue* record = FindById(database, id))
+            {
+                PrintRecord(*record);
+            }
+            else
+            {
+                std::cout << "해당 id의 데이터를 찾을 수 없습니다.\n";
+            }
+        }
+        catch (const std::exception&)
+        {
+            std::cout << "숫자로 된 id를 입력하세요.\n";
+        }
+    }
+
+    void HandleSearchByField(const json::JsonValue& database)
+    {
+        std::string field = ReadLine("검색할 필드명: ");
+        std::string value = ReadLine("검색할 값: ");
+
+        bool found = false;
+        for (const auto& record : database.AsArray())
+        {
+            const json::JsonValue* fieldValue = record.Find(field);
+            if (fieldValue && FieldToString(*fieldValue) == value)
+            {
+                PrintRecord(record);
+                found = true;
+            }
+        }
+        if (!found)
+        {
+            std::cout << "일치하는 데이터를 찾을 수 없습니다.\n";
+        }
+    }
+
+    void HandleRead(const json::JsonValue& database)
+    {
+        std::cout << "\n-- Read --\n"
+                   << "1. 전체 목록 보기\n"
+                   << "2. id로 검색\n"
+                   << "3. 필드명으로 검색\n"
+                   << "선택: ";
+        int choice = ReadMenuChoice();
+        switch (choice)
+        {
+        case 1:
+            PrintAllRecords(database);
+            break;
+        case 2:
+            HandleSearchById(database);
+            break;
+        case 3:
+            HandleSearchByField(database);
+            break;
+        default:
+            std::cout << "올바른 메뉴 번호를 입력하세요.\n";
+            break;
+        }
+    }
 }
 
 int main()
@@ -107,7 +225,7 @@ int main()
             HandleCreate(database);
             break;
         case 2:
-            std::cout << "[Read] 아직 구현되지 않았습니다.\n";
+            HandleRead(database);
             break;
         case 3:
             std::cout << "[Update] 아직 구현되지 않았습니다.\n";
