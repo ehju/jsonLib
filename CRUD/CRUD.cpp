@@ -135,24 +135,35 @@ namespace
         return nullptr;
     }
 
-    void HandleSearchById(const json::JsonValue& database)
+    bool TryParseId(const std::string& text, int& outId)
     {
-        std::string idText = ReadLine("검색할 id: ");
         try
         {
-            int id = std::stoi(idText);
-            if (const json::JsonValue* record = FindById(database, id))
-            {
-                PrintRecord(*record);
-            }
-            else
-            {
-                std::cout << "해당 id의 데이터를 찾을 수 없습니다.\n";
-            }
+            outId = std::stoi(text);
+            return true;
         }
         catch (const std::exception&)
         {
+            return false;
+        }
+    }
+
+    void HandleSearchById(const json::JsonValue& database)
+    {
+        std::string idText = ReadLine("검색할 id: ");
+        int id = 0;
+        if (!TryParseId(idText, id))
+        {
             std::cout << "숫자로 된 id를 입력하세요.\n";
+            return;
+        }
+        if (const json::JsonValue* record = FindById(database, id))
+        {
+            PrintRecord(*record);
+        }
+        else
+        {
+            std::cout << "해당 id의 데이터를 찾을 수 없습니다.\n";
         }
     }
 
@@ -201,6 +212,89 @@ namespace
             break;
         }
     }
+
+    void HandleUpdate(json::JsonValue& database)
+    {
+        std::string idText = ReadLine("수정할 id: ");
+        int id = 0;
+        if (!TryParseId(idText, id))
+        {
+            std::cout << "숫자로 된 id를 입력하세요.\n";
+            return;
+        }
+
+        for (auto& record : database.AsArray())
+        {
+            const json::JsonValue* idValue = record.Find("id");
+            if (!idValue || static_cast<int>(idValue->AsNumber()) != id)
+            {
+                continue;
+            }
+
+            std::cout << "현재 데이터: ";
+            PrintRecord(record);
+
+            std::string field = ReadLine("수정할 필드명 (id는 수정 불가): ");
+            if (field == "id")
+            {
+                std::cout << "id는 수정할 수 없습니다.\n";
+                return;
+            }
+            if (!record.Find(field))
+            {
+                std::cout << "존재하지 않는 필드입니다.\n";
+                return;
+            }
+
+            std::string newValue = ReadLine("새 값: ");
+            record[field] = json::JsonValue(newValue);
+            database.SaveToFile(kDataFilePath, 2);
+
+            std::cout << "수정되었습니다: ";
+            PrintRecord(record);
+            return;
+        }
+
+        std::cout << "해당 id의 데이터를 찾을 수 없습니다.\n";
+    }
+
+    void HandleDelete(json::JsonValue& database)
+    {
+        std::string idText = ReadLine("삭제할 id: ");
+        int id = 0;
+        if (!TryParseId(idText, id))
+        {
+            std::cout << "숫자로 된 id를 입력하세요.\n";
+            return;
+        }
+
+        auto& records = database.AsArray();
+        auto it = std::find_if(records.begin(), records.end(), [id](const json::JsonValue& record)
+        {
+            const json::JsonValue* idValue = record.Find("id");
+            return idValue && static_cast<int>(idValue->AsNumber()) == id;
+        });
+
+        if (it == records.end())
+        {
+            std::cout << "해당 id의 데이터를 찾을 수 없습니다.\n";
+            return;
+        }
+
+        std::cout << "삭제 대상: ";
+        PrintRecord(*it);
+
+        std::string confirm = ReadLine("정말 삭제하시겠습니까? (y/n): ");
+        if (confirm != "y" && confirm != "Y")
+        {
+            std::cout << "삭제를 취소했습니다.\n";
+            return;
+        }
+
+        records.erase(it);
+        database.SaveToFile(kDataFilePath, 2);
+        std::cout << "삭제되었습니다.\n";
+    }
 }
 
 int main()
@@ -228,10 +322,10 @@ int main()
             HandleRead(database);
             break;
         case 3:
-            std::cout << "[Update] 아직 구현되지 않았습니다.\n";
+            HandleUpdate(database);
             break;
         case 4:
-            std::cout << "[Delete] 아직 구현되지 않았습니다.\n";
+            HandleDelete(database);
             break;
         case 5:
             running = false;
