@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iostream>
 #include <limits>
 #include <string>
@@ -44,6 +45,44 @@ namespace
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         return choice;
     }
+
+    std::string ReadLine(const std::string& prompt)
+    {
+        std::cout << prompt;
+        std::string line;
+        std::getline(std::cin, line);
+        return line;
+    }
+
+    int NextId(const json::JsonValue& database)
+    {
+        int maxId = 0;
+        for (const auto& record : database.AsArray())
+        {
+            if (const json::JsonValue* id = record.Find("id"))
+            {
+                maxId = std::max(maxId, static_cast<int>(id->AsNumber()));
+            }
+        }
+        return maxId + 1;
+    }
+
+    void HandleCreate(json::JsonValue& database)
+    {
+        std::cout << "\n-- 새 데이터 추가 --\n";
+        std::string name = ReadLine("name: ");
+        std::string value = ReadLine("value: ");
+
+        json::JsonValue record = json::JsonValue::MakeObject();
+        record["id"] = json::JsonValue(NextId(database));
+        record["name"] = json::JsonValue(name);
+        record["value"] = json::JsonValue(value);
+
+        database.Push(record);
+        database.SaveToFile(kDataFilePath, 2);
+
+        std::cout << "저장되었습니다: " << record.Dump() << "\n";
+    }
 }
 
 int main()
@@ -65,7 +104,7 @@ int main()
         switch (choice)
         {
         case 1:
-            std::cout << "[Create] 아직 구현되지 않았습니다.\n";
+            HandleCreate(database);
             break;
         case 2:
             std::cout << "[Read] 아직 구현되지 않았습니다.\n";
