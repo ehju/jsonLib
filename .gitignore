@@ -1,0 +1,23 @@
+# Visual Studio 빌드 산출물 및 캐시
+.vs/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+Win32/
+*.ilk
+*.pdb
+*.obj
+*.exe
+*.idb
+*.ipch
+*.log
+*.tlog/
+*.vcxproj.user
+
+# 프로그램 실행 시 생성되는 산출물
+output.json
+
+# 로컬 환경/비밀 정보
+.mcp.json
+.claude/settings.local.json
